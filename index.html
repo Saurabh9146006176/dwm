@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dog vs Cat Classifier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(to right, #dfe9f3, #ffffff);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    /* Custom styling since @apply won't work in <style> */
+    .file-input::file-selector-button {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+      border-radius: 9999px;
+      padding: 0.5rem 1rem;
+      margin-right: 1rem;
+      transition: background-color 0.2s ease;
+    }
+    .file-input::file-selector-button:hover {
+      background-color: #dbeafe;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+
+  <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl w-full max-w-md transition-transform duration-300 hover:scale-[1.01]">
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-center text-blue-700 mb-2">🐶 Dog vs 🐱 Cat</h1>
+    <p class="text-center text-gray-600 mb-6">Upload an image to identify whether it's a dog or a cat.</p>
+
+    <!-- Upload Form -->
+    <form id="uploadForm" class="flex flex-col gap-4" enctype="multipart/form-data">
+      <input 
+        type="file" 
+        name="file" 
+        id="fileInput" 
+        accept="image/*" 
+        required 
+        class="file-input border-2 border-dashed border-gray-300 rounded-lg px-4 py-2 text-sm"
+      >
+
+      <button 
+        type="submit" 
+        id="submitBtn"
+        class="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-2 rounded-full shadow-md hover:shadow-lg transition duration-200"
+      >
+        🔍 Predict
+        <span id="loadingSpinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+      </button>
+    </form>
+
+    <!-- Prediction Result -->
+    <div id="result" class="mt-6 text-center hidden">
+      <img 
+        id="previewImg" 
+        src="" 
+        alt="Uploaded Image"
+        class="mx-auto max-h-60 mb-4 rounded-lg shadow-lg border border-gray-200"
+      >
+      <p class="text-xl font-semibold text-green-600" id="predictionText"></p>
+      <p class="text-gray-700 mt-1 text-sm" id="confidenceText"></p>
+    </div>
+
+    <!-- Error Message -->
+    <div 
+      id="error" 
+      class="mt-4 text-red-600 text-center font-medium hidden"
+    ></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const resultDiv = document.getElementById('result');
+    const predictionText = document.getElementById('predictionText');
+    const confidenceText = document.getElementById('confidenceText');
+    const previewImg = document.getElementById('previewImg');
+    const errorDiv = document.getElementById('error');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      resultDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      loadingSpinner.classList.remove('hidden');
+      submitBtn.setAttribute('disabled', true);
+
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      previewImg.src = URL.createObjectURL(file);
+
+      try {
+        const response = await fetch('/predict', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorDiv.textContent = data.error || 'Something went wrong.';
+          errorDiv.classList.remove('hidden');
+        } else {
+          predictionText.textContent = `Prediction: ${data.prediction}`;
+          confidenceText.textContent = `Confidence: ${data.confidence_percent}%`;
+          resultDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorDiv.textContent = err.message || 'Error occurred.';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        loadingSpinner.classList.add('hidden');
+        submitBtn.removeAttribute('disabled');
+      }
+    });
+  </script>
+
+</body>
+</html>
